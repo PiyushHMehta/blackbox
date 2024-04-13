@@ -1,23 +1,36 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import axios from 'axios'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
+
 
 export default function AddTechPage() {
+    const { id } = useParams()
     const [title, setTitle] = useState('')
     const [addedPhotos, setAddedPhotos] = useState([])
-    const [photoLink, setPhotoLink] = useState('')
     const [docs, setDocs] = useState('')
     const [installation, setInstallation] = useState('')
     const [redirect, setRedirect] = useState('')
+    const [link, setLink] = useState('')
+    const [additionalLinks, setAdditionalLinks] = useState([])
 
-    async function addPhotoByLink(ev) {
-        ev.preventDefault()
-        const { data: filename } = await axios.post('/upload-by-link', { link: photoLink })
-        setAddedPhotos(prev => {
-            return [...prev, filename]
+    useEffect(() => {
+        if (!id) return;
+        axios.get('/account/techstack/' + id).then(res => {
+            const { data } = res
+            setTitle(data.title)
+            setAddedPhotos(data.photos)
+            setDocs(data.docs)
+            setInstallation(data.installation)
+            setAdditionalLinks(data.additionalLinks)
         })
-        console.log(addedPhotos);
-        setPhotoLink('')
+    }, [id])
+
+    async function addExtraLinks(ev) {
+        ev.preventDefault()
+        setAdditionalLinks(prev => {
+            return [...prev, link]
+        })
+        setLink('')
     }
 
     function uploadPhoto(ev) {
@@ -38,10 +51,18 @@ export default function AddTechPage() {
         })
     }
 
-    async function addNewTech(ev) {
+    async function saveNewTech(ev) {
         ev.preventDefault()
-        const { data } = await axios.post('/tech', { title, addedPhotos, docs, installation })
-        setRedirect('/account')
+        if (id) {
+            // update
+            await axios.put('/tech', { id, title, addedPhotos, docs, installation, additionalLinks })
+            setRedirect('/account')
+        } else {
+            // new 
+            const { data } = await axios.post('/tech', { title, addedPhotos, docs, installation, additionalLinks })
+            setRedirect('/account')
+        }
+
     }
 
     if (redirect) {
@@ -50,21 +71,15 @@ export default function AddTechPage() {
 
     return (
         <div>
-            <form onSubmit={addNewTech}
+            <form onSubmit={saveNewTech}
                 className='flex flex-col gap-2'>
                 <input type="text" placeholder='Name of the technology' value={title}
                     onChange={ev => setTitle(ev.target.value)} />
-
-                <div className='flex gap-2 items-center'>
-                    <input type="text" placeholder='Add logo using link' value={photoLink} onChange={ev => setPhotoLink(ev.target.value)} />
-                    <button className='w-60 h-11' onClick={addPhotoByLink}>Add</button>
-                </div>
 
                 <div className='grid grid-cols-4 gap-4'>
                     {addedPhotos.length > 0 && addedPhotos.map(link => (
                         <div key={link}>
                             <img src={"http://localhost:4000/uploads/" + link} alt="image" />
-                            {/* {link} */}
                         </div>
                     ))}
                     <label className='w-60 px-4 py-8 text-2xl flex items-center justify-center gap-2 cursor-pointer bg-black border border-whiterounded-sm shadow shadow-yellow-500'>
@@ -81,6 +96,11 @@ export default function AddTechPage() {
 
                 <input type="text" placeholder='Link to the installation page'
                     value={installation} onChange={ev => setInstallation(ev.target.value)} />
+
+                <div className='flex gap-2 items-center'>
+                    <input type="text" placeholder='Additional links' value={link} onChange={ev => setLink(ev.target.value)} />
+                    <button className='w-60 h-11' onClick={addExtraLinks}>Add</button>
+                </div>
 
                 <button className='w-60 mx-auto mt-4'>Save & Update</button>
             </form>

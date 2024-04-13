@@ -76,24 +76,13 @@ app.post('/logout', (req, res) => {
 })
 
 
-app.post('/upload-by-link', async (req, res) => {
-    const { link } = req.body
-    const newName = 'photo' + Date.now() + '.jpg'
-
-    await imageDownloader.image({
-        url: link,
-        dest: __dirname + '/uploads/' + newName
-    })
-    res.json(newName)
-})
-
 const photosMiddleware = multer({ dest: 'uploads/' })
 app.post('/upload', photosMiddleware.array('photos', 10), (req, res) => {
     const uploadedFiles = []
     for (let i = 0; i < req.files.length; i++) {
         const { path, originalname } = req.files[i]
         const parts = originalname.split(".")
-        const ext = parts[parts.length-1]
+        const ext = parts[parts.length - 1]
         const newPath = path + '.' + ext
         fs.renameSync(path, newPath)
         uploadedFiles.push(newPath.replace('uploads\\', ''))
@@ -102,9 +91,9 @@ app.post('/upload', photosMiddleware.array('photos', 10), (req, res) => {
 })
 
 app.post('/tech', async (req, res) => {
-    const {title, addedPhotos, docs, installation} = req.body
+    const { title, addedPhotos, docs, installation, additionalLinks } = req.body
     const techDoc = await ImageLink.create({
-        title, photos: addedPhotos.flat(), docs, installation                       
+        title, photos: addedPhotos.flat(), docs, installation, additionalLinks
     })
     res.json(techDoc)
 })
@@ -118,5 +107,44 @@ app.get('/tech', async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
+app.get('/tech/:id', async (req, res) => {
+    const { id } = req.params
+    res.json(await ImageLink.findById(id))
+})
+
+app.get('/account/techstack/:id', async (req, res) => {
+    const { id } = req.params
+    res.json(await ImageLink.findById(id))
+})
+
+app.put('/tech', async (req, res) => {
+    const { id, title, addedPhotos, docs, installation, additionalLinks } = req.body
+    const techDoc = await ImageLink.findById(id)
+    techDoc.set({ title, photos: addedPhotos.flat(), docs, installation, additionalLinks })
+    await techDoc.save()
+    res.json('Ok')
+})
+
+app.get('/fetch-title', async (req, res) => {
+    const { url } = req.query;
+    try {
+        // Fetch the HTML content of the webpage
+        const response = await fetch(url);
+        const html = await response.text();
+
+        // Extract the title using regular expressions
+        const titleRegex = /<title>(.*?)<\/title>/;
+        const match = html.match(titleRegex);
+        const title = match ? match[1] : 'Title not found';
+
+        // Send the title as a response
+        res.json({ title });
+    } catch (error) {
+        console.error('Error fetching title:', error);
+        res.status(500).json({ error: 'An error occurred while fetching the title.' });
+    }
+})
+
 
 app.listen(4000)

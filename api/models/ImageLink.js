@@ -8,7 +8,8 @@ const imageLinkSchema = new mongoose.Schema({
     },
     photos: [String],
     installation: String,
-    docs: String
+    docs: String,
+    additionalLinks: [String]
 });
 
 const ImageLinkModel = mongoose.model('ImageLink', imageLinkSchema);

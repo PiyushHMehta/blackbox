@@ -41,7 +41,7 @@ export default function AccountPage() {
     }
 
     return (
-        <div>
+        <div className='flex flex-col grow'>
             <nav className='w-full flex gap-2 mt-4 mb-8 justify-center'>
                 <Link to={'/account'} className={linkClasses('profile')}>
                     My profile
